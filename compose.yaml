@@ -1,0 +1,112 @@
+name: ${COMPOSE_PROJECT_NAME:-badi-esim}
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-badi}
+      POSTGRES_DB: ${POSTGRES_DB:-badi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run make env first}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  migrate:
+    image: ${COMPOSE_PROJECT_NAME:-badi-esim}-api
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      BADI_ENVIRONMENT: development
+      BADI_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-badi}:${POSTGRES_PASSWORD:?Run make env first}@db:5432/${POSTGRES_DB:-badi}
+      BADI_MIGRATION_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-badi}:${POSTGRES_PASSWORD:?Run make env first}@db:5432/${POSTGRES_DB:-badi}
+      BADI_APP_DB_PASSWORD: ${BADI_APP_DB_PASSWORD:?Run make env first}
+      BADI_AUTH_SECRET: ${BADI_AUTH_SECRET:?Run make env first}
+    command: ["python", "-m", "app.migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    image: ${COMPOSE_PROJECT_NAME:-badi-esim}-api
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      BADI_ENVIRONMENT: development
+      BADI_DATABASE_URL: postgresql+asyncpg://badi_app:${BADI_APP_DB_PASSWORD:?Run make env first}@db:5432/${POSTGRES_DB:-badi}
+      BADI_AUTH_SECRET: ${BADI_AUTH_SECRET:?Run make env first}
+      BADI_ALLOWED_ORIGINS: '["http://127.0.0.1:${WEB_PORT:-8080}","http://localhost:${WEB_PORT:-8080}","http://127.0.0.1:5173","http://localhost:5173","http://127.0.0.1:${API_PORT:-8000}"]'
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready', timeout=4)"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    init: true
+
+  worker:
+    image: ${COMPOSE_PROJECT_NAME:-badi-esim}-api
+    environment:
+      BADI_ENVIRONMENT: development
+      BADI_DATABASE_URL: postgresql+asyncpg://badi_app:${BADI_APP_DB_PASSWORD:?Run make env first}@db:5432/${POSTGRES_DB:-badi}
+      BADI_AUTH_SECRET: ${BADI_AUTH_SECRET:?Run make env first}
+    command: ["python", "-m", "app.outbox"]
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    init: true
+
+  db-test:
+    profiles: ["test"]
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: badi
+      POSTGRES_DB: badi_test
+      POSTGRES_PASSWORD: badi-tests-only
+    ports:
+      - "127.0.0.1:${TEST_POSTGRES_PORT:-55433}:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U badi -d badi_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    init: true
+
+volumes:
+  postgres_data:

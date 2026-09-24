@@ -1,0 +1,43 @@
+# Secrets and local runtime state
+.env
+.env.*
+!.env.example
+.omx/
+.codex/
+*.pem
+*.key
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Frontend / test artifacts
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+frontend/e2e/.auth/
+*.tsbuildinfo
+
+# Editors / operating systems
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Private exports, uploads, dumps
+transcripts/
+uploads/
+*.dump
+*.sql.gz
+
+# Private attachment storage (local dev)
+var/
