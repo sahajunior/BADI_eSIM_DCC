@@ -19,7 +19,7 @@ test('foundation page proves ready API/database health on desktop and mobile', a
 
   await page.goto('/health');
 
-  await expect(page.getByRole('heading', { name: /a reliable starting point/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /service health/i })).toBeVisible();
   await expect(page.getByText(/^ready$/i)).toBeVisible();
   await expect(page.getByText(/postgresql ok/i)).toBeVisible();
 
@@ -31,7 +31,7 @@ test('foundation page proves ready API/database health on desktop and mobile', a
   await expect(page.getByText(/^ready$/i)).toBeVisible();
   await expect(page.getByRole('button', { name: /check again/i })).toBeEnabled();
 
-  await expect(page.getByRole('link', { name: /api documentation/i })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: /api docs/i })).toHaveAttribute(
     'href',
     '/api/v1/docs',
   );

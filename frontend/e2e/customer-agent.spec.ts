@@ -42,7 +42,7 @@ test('customer and agent complete a live lifecycle with internal-note privacy', 
     await agentPage.getByLabel('Status').selectOption('IN_PROGRESS');
     await agentPage.getByRole('button', { name: /save changes/i }).click();
     await expect(
-      agentPage.locator('.ticket-header .badge').filter({ hasText: /^In Progress$/ }),
+      agentPage.locator('.ticket-header .badge').filter({ hasText: /^In progress$/ }),
     ).toBeVisible();
 
     // Agent replies publicly; the customer sees it without refreshing.
