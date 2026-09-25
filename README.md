@@ -375,6 +375,10 @@ Important settings include:
 Never commit `.env`, Playwright authentication state, attachment data, database dumps,
 or real customer information. These paths are excluded by `.gitignore`.
 
+## AI use
+
+See the [AI usage disclosure and session export](docs/ai-usage.md).
+
 ## Troubleshooting
 
 - **Docker is unavailable:** start Docker and verify `docker info` succeeds.
